@@ -108,9 +108,40 @@ class DR_NTU():
         if div is None:
             return {}
         a_tab = div.find_all(name='a')
-        return {a.text.strip():a.get('href') for a in a_tab}
+
+        links = {}
+
+        for a in a_tab:
+            link = a.get('href')
+            text = a.text
+            if link is None or link=='#':
+                continue
+            if 'scholar.google' in link:
+                key = 'google_scholar'
+            elif 'orcid.org' in link:
+                key = 'orcid'
+            elif 'github' in link:
+                key = 'github'
+            elif 'scopus' in link:
+                key = 'scopus'
+            elif 'webofscience' in link:
+                key = 'web_of_science'
+            # TODO: Create better logic to separate personal site
+            # elif 'website' in text.lower() or 'homepage' in text.lower() or 'ntu.edu.sg' in link:
+            #     key = 'personal_website'
+            else:
+                key = 'others'
+            
+            if key=='others':
+                links[key] = links.get(key, []) + [link]
+            else:
+                links[key] = link
+
+
+        return links
 
     # Information from `Profile` Section
+    #TODO: Check if there are any more sections in `div` with `id=accordian`
     def scrape_keywords(self, html: BeautifulSoup)->List[str]:
         keywords_div = html.find(name='div', attrs={'id':'researchkeywords', 'class':'panel'})
         if keywords_div is None:
@@ -134,6 +165,10 @@ class DR_NTU():
         if grants_div is None:
             return None
         return grants_div.text.strip()
+
+    #TODO: Scrape from `div` with `id=teaching`
+    def scrape_course_taught(self, html: BeautifulSoup)->List[str]:
+        return
 
     # Information from `Publication` Section
     def scrape_articles(self, html: BeautifulSoup)->List[str]:
@@ -231,9 +266,24 @@ class DR_NTU():
         link_divs = div.find_all(name='div', attrs={'class':'dynaField'})
         links = {}
 
-        for link in link_divs:
-            a = link.find(name='a')
-            links[a.text.strip()] = a.get('href')
+        for link_div in link_divs:
+            a = link_div.find(name='a')
+            link = a.get('href')
+            if link is None:
+                continue
+            if 'scholar.google' in link:
+                key = 'google_scholar'
+            elif 'scopus' in link:
+                key = 'scopus'
+            elif 'webofscience' in link:
+                key = 'web_of_science'
+            else:
+                key = 'others'
+            
+            if key=='others':
+                links[key] = links.get(key, []) + [link]
+            else:
+                links[key] = link
 
         return links
 
@@ -257,6 +307,7 @@ class DR_NTU():
 
         profile = {}
 
+        profile['dr_ntu_site'] = profile_url
         profile['position'] = self.scrape_position(html)
         profile['name_card'] = self.scrape_name_card(html)
         profile['email'] = self.scrape_email(html)
@@ -281,6 +332,13 @@ class DR_NTU():
         profile['book_chapters'] = self.scrape_book_chapters(html)
         profile['conferences'] = self.scrape_conferences(html)
         profile['bibliometrics'] = self.scrape_bibliometrics(html)
+
+        # Merging `bibliometrics` into `websites`. Taking the value of `bibliometrics` if there are overlapping keys
+        for k, v in profile['bibliometrics'].items():
+            if k=='others':
+                profile['websites']['others'] = list(set(profile['websites'].get('others', []) + profile['bibliometrics']['others']))
+            else:
+                profile['websites'][k] = profile['bibliometrics'][k]
 
         self.individual_profiles[full_name] = profile
         return
