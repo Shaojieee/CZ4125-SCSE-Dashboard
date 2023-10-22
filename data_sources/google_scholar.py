@@ -3,6 +3,7 @@ from collections import OrderedDict
 from selenium import webdriver
 from selenium_stealth import stealth
 from selenium.webdriver.common.by import By
+from selenium.webdriver.common.keys import Keys
 import time
 import random
 import os
@@ -280,3 +281,32 @@ def save_publications_details(details, output_filename, output_dir='./data'):
     
     with open(output_filename, 'w') as f:
         json.dump(updated, f)
+
+
+def search_from_google_scholar_profile(full_name: str, driver: webdriver.Chrome):
+    search_bar = driver.find_element(By.ID, 'gs_hdr_tsi')
+    search_bar.click()
+    search_bar.clear()
+    # Search with ntu to help filter out results
+    search_bar.send_keys(f'{full_name} ntu')
+
+    time.sleep(random.uniform(5,7))
+
+    search_bar.send_keys(Keys.RETURN)
+
+    table = driver.find_element(By.ID, 'gsc_sa_ccl')
+    table = table.get_attribute('outerHTML')
+    table = BeautifulSoup(table, 'html.parser')
+
+    rows = table.find_all(name='div', attrs={'class': 'gsc_1usr'})
+    results = []
+    for row in rows:
+        name = row.find(name='h3', attrs={'class':'gs_ai_name'})
+
+        aff = row.find(name='div', attrs={'class': 'gs_ai_aff'})
+        eml = row.find(name='div', attrs={'class': 'gs_ai_eml'})
+
+        if (eml is not None and 'ntu.edu.sg' in eml.text) or (aff is not None and 'Nanyang Technological University' in aff.text):
+            results.append('https://scholar.google.com' + name.find(name='a').get('href'))
+    
+    return results
