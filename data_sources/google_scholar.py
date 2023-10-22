@@ -11,6 +11,8 @@ import pandas as pd
 import numpy as np
 from typing import Dict, List
 
+from utils import word_match
+
 
 
 BASE_URL = "https://scholar.google.com"
@@ -134,7 +136,6 @@ def scrape_citation_statistics(driver: webdriver.Chrome)->Dict:
         print(e)
         return {'table':None, 'chart': None}
 
-
 def scrape_co_authors(driver: webdriver.Chrome)->List[Dict]:
     try:
         co_authors_element = driver.find_elements(By.ID, 'gsc_rsb_co')
@@ -213,7 +214,7 @@ def save_google_scholar_profile(profile: Dict, output_filename, output_dir='./da
     with open(output_filename, 'w') as f:
         json.dump(profile, f)
 
-# TODO: Need to take into account for the missing year citation number
+
 def scrape_publication_details(url: str, driver: webdriver.Chrome):
     try:
         
@@ -221,18 +222,19 @@ def scrape_publication_details(url: str, driver: webdriver.Chrome):
         title = title.get_attribute('outerHTML')
         title = BeautifulSoup(title, 'html.parser')
 
-        table = driver.find_element(By.ID, "gsc_oci_table")
-        table = table.get_attribute('outerHTML')
-        table = BeautifulSoup(table, 'html.parser')
-
-
         details = {}
 
         title_external_link = title.find(name='a', attrs={'class': 'gsc_oci_title_link'})
-        if title_external_link.get('href')=='':
+        if title_external_link is None:
             details['external_link'] = None
         else: 
-            details['external_link'] = title_external_link.get('href')
+            details['external_link'] = title_external_link.get('href') if title_external_link.get('href')!='' else None
+
+        table = driver.find_elements(By.ID, "gsc_oci_table")
+        if len(table)==0:
+            return details
+        table = table[0].get_attribute('outerHTML')
+        table = BeautifulSoup(table, 'html.parser')
 
         rows = table.find_all(name='div', attrs={'class':'gs_scl'})
         for row in rows:
@@ -278,3 +280,15 @@ def save_publications_details(details, output_filename, output_dir='./data'):
     
     with open(output_filename, 'w') as f:
         json.dump(updated, f)
+
+
+def validate_google_scholar_url(driver:webdriver.Chrome, google_scholar_url: str, full_name:str):
+    driver.get(google_scholar_url)
+
+    name = driver.find_element(By.ID, 'gsc_prf_in').text.strip()
+
+    verification = driver.find_element(By.ID, 'gsc_prf_ivh').text
+
+    verified = 'Verified email at ntu.edu.sg' in verification
+
+    return 
