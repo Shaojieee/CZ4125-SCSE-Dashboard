@@ -280,15 +280,3 @@ def save_publications_details(details, output_filename, output_dir='./data'):
     
     with open(output_filename, 'w') as f:
         json.dump(updated, f)
-
-
-def validate_google_scholar_url(driver:webdriver.Chrome, google_scholar_url: str, full_name:str):
-    driver.get(google_scholar_url)
-
-    name = driver.find_element(By.ID, 'gsc_prf_in').text.strip()
-
-    verification = driver.find_element(By.ID, 'gsc_prf_ivh').text
-
-    verified = 'Verified email at ntu.edu.sg' in verification
-
-    return 
