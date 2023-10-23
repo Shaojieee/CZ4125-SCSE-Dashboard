@@ -1,5 +1,4 @@
 from bs4 import BeautifulSoup
-from collections import OrderedDict
 from selenium import webdriver
 from selenium_stealth import stealth
 from selenium.webdriver.common.by import By
@@ -12,20 +11,17 @@ import pandas as pd
 import numpy as np
 from typing import Dict, List
 
-from utils import word_match
-
-
 
 BASE_URL = "https://scholar.google.com"
 
 
 def scrape_publications(driver:webdriver.Chrome)->Dict:
     try:
-        time.sleep(random.uniform(3,7))
+        time.sleep(random.uniform(3,6))
         button = driver.find_element(By.ID, "gsc_bpf_more")
         while button.get_attribute('disabled') is None:
             button.click()
-            time.sleep(random.uniform(3,8))
+            time.sleep(random.uniform(3,6))
 
         table = driver.find_element(By.ID, "gsc_a_b")
         table = table.get_attribute('outerHTML')
@@ -98,6 +94,7 @@ def scrape_citation_table(table:BeautifulSoup)->Dict:
 
     return {x[0]: x[1]for x in table_dup}
 
+# TODO: Include function to take into account of missing values. Example: https://scholar.google.com/citations?hl=en&user=w7C16A8AAAAJ#d=gsc_md_hist&t=1697988635360
 def scrape_citation_graph(chart:BeautifulSoup)->Dict[int, int]:
     data = {}
     chart = chart.find(name='div', attrs={'class': 'gsc_md_hist_b'})
@@ -105,8 +102,11 @@ def scrape_citation_graph(chart:BeautifulSoup)->Dict[int, int]:
     years = chart.find_all(name='span', attrs={'class':'gsc_g_t'})
     cited = chart.find_all(name='a', attrs={'class':'gsc_g_a'})
 
-    for i in range(len(years)):
-        data[int(years[i].text.strip())] = int(cited[i].text.strip())
+    for i in range(len(cited)):
+        style = cited.get('style')
+        z_index = int(style.split(';')[-1].split(':')[-1])
+
+        data[int(years[-z_index])] = int(cited[i].text.strip())
 
     return data
 
@@ -120,14 +120,15 @@ def scrape_citation_statistics(driver: webdriver.Chrome)->Dict:
         open_chart_btn = driver.find_elements(By.ID, 'gsc_hist_opn')
         if len(open_chart_btn)>0:
             open_chart_btn[0].click()
+            time.sleep(random.uniform(2,4))
             chart = driver.find_element(By.ID, 'gsc_md_hist_c')
             chart = chart.get_attribute('outerHTML')
             chart = BeautifulSoup(chart, 'html.parser')
             chart = scrape_citation_graph(chart)
 
-            time.sleep(random.uniform(1,3))
             close_chart_btn = driver.find_element(By.ID, 'gsc_md_hist-x')
             close_chart_btn.click()
+            time.sleep(random.uniform(2,4))
         else:
             chart = {}
 
@@ -172,27 +173,10 @@ def scrape_co_authors(driver: webdriver.Chrome)->List[Dict]:
         return None
 
 
-def scrape_google_scholar_profile(url: str):
+def scrape_google_scholar_profile(url: str, driver:webdriver.Chrome):
     try:
-        options = webdriver.ChromeOptions()
-        options.add_argument("--headless")
-        options.add_experimental_option("excludeSwitches", ["enable-automation"])
-        options.add_experimental_option('useAutomationExtension', False)
-        driver = webdriver.Chrome(
-            options=options
-        )
-        stealth(driver,
-                # user_agent=agent,
-                languages=["en-US", "en"],
-                vendor="Google Inc.",
-                platform="Win32",
-                webgl_vendor="Intel Inc.",
-                renderer="Intel Iris OpenGL Engine",
-                fix_hairline=True,
-                )
-
         driver.get(url)
-        time.sleep(random.uniform(3,5))
+        time.sleep(random.uniform(5, 7))
         citation_statistics = scrape_citation_statistics(driver)
 
         time.sleep(random.uniform(1,2))
@@ -200,8 +184,6 @@ def scrape_google_scholar_profile(url: str):
 
         # time.sleep(random.uniform(1,2))
         publications = scrape_publications(driver)
-
-        driver.quit()
 
         return {'publications': publications, 'citation_statistics': citation_statistics, 'co_authors': co_authors}
     except:
