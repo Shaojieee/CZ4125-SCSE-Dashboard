@@ -244,7 +244,7 @@ def scrape_google_scholar_profile(url: str, driver:webdriver.Chrome):
         print(f'Error Scraping Google Scholar for {url}')
         return None
 
-def save_google_scholar_profile(profile: Dict, output_filename, output_dir='./data'):
+def save_google_scholar_profile(profile: Dict, output_filename, output_dir='./raw_data'):
     os.makedirs(output_dir, exist_ok=True)
     output_filename = output_dir + '/' + output_filename
 
@@ -304,7 +304,7 @@ def scrape_publication_details(url: str, driver: webdriver.Chrome):
 
         return {}
 
-def save_publications_details(details, output_filename, output_dir='./data'):
+def save_publications_details(details, output_filename, output_dir='./raw_data'):
     os.makedirs(output_dir, exist_ok=True)
     output_filename = output_dir + '/' + output_filename
     

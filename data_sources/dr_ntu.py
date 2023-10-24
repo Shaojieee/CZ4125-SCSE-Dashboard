@@ -62,7 +62,7 @@ def scrape_all_scse_profiles(save=True):
         save_scse_profiles(scse_profiles)
     return scse_profiles
 
-def save_scse_profiles(df:pd.DataFrame, output_dir='./data', output_filename='scse_profiles')->None:
+def save_scse_profiles(df:pd.DataFrame, output_dir='./raw_data', output_filename='scse_profiles')->None:
     os.makedirs(output_dir, exist_ok=True)
     output_file = os.path.join(output_dir, output_filename+'.csv')
     df.to_csv(output_file, index=False)
@@ -331,7 +331,7 @@ def scrape_individual_profile(url:str, full_name:str)->Dict:
     return profile
 
 
-def save_individual_profile(profile, output_filename, output_dir='./data'):
+def save_individual_profile(profile, output_filename, output_dir='./raw_data'):
     os.makedirs(output_dir, exist_ok=True)
     output_file = os.path.join(output_dir, 'dr_ntu_'+output_filename+'.json')
     with open(output_file, 'w') as f:
