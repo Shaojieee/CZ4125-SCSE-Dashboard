@@ -1,6 +1,5 @@
 from bs4 import BeautifulSoup
 from selenium import webdriver
-from selenium_stealth import stealth
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 import time
@@ -17,7 +16,6 @@ BASE_URL = "https://scholar.google.com"
 
 def scrape_publications(driver:webdriver.Chrome)->Dict:
     try:
-        time.sleep(random.uniform(3,6))
         button = driver.find_element(By.ID, "gsc_bpf_more")
         while button.get_attribute('disabled') is None:
             button.click()
@@ -94,7 +92,6 @@ def scrape_citation_table(table:BeautifulSoup)->Dict:
 
     return {x[0]: x[1]for x in table_dup}
 
-# TODO: Include function to take into account of missing values. Example: https://scholar.google.com/citations?hl=en&user=w7C16A8AAAAJ#d=gsc_md_hist&t=1697988635360
 def scrape_citation_graph(chart:BeautifulSoup)->Dict[int, int]:
     data = {}
     chart = chart.find(name='div', attrs={'class': 'gsc_md_hist_b'})
@@ -103,10 +100,10 @@ def scrape_citation_graph(chart:BeautifulSoup)->Dict[int, int]:
     cited = chart.find_all(name='a', attrs={'class':'gsc_g_a'})
 
     for i in range(len(cited)):
-        style = cited.get('style')
+        style = cited[i].get('style')
         z_index = int(style.split(';')[-1].split(':')[-1])
 
-        data[int(years[-z_index])] = int(cited[i].text.strip())
+        data[int(years[-z_index].text.strip())] = int(cited[i].text.strip())
 
     return data
 
@@ -120,7 +117,7 @@ def scrape_citation_statistics(driver: webdriver.Chrome)->Dict:
         open_chart_btn = driver.find_elements(By.ID, 'gsc_hist_opn')
         if len(open_chart_btn)>0:
             open_chart_btn[0].click()
-            time.sleep(random.uniform(2,4))
+            time.sleep(random.uniform(3,5))
             chart = driver.find_element(By.ID, 'gsc_md_hist_c')
             chart = chart.get_attribute('outerHTML')
             chart = BeautifulSoup(chart, 'html.parser')
@@ -128,7 +125,7 @@ def scrape_citation_statistics(driver: webdriver.Chrome)->Dict:
 
             close_chart_btn = driver.find_element(By.ID, 'gsc_md_hist-x')
             close_chart_btn.click()
-            time.sleep(random.uniform(2,4))
+            time.sleep(random.uniform(3,5))
         else:
             chart = {}
 
@@ -138,6 +135,7 @@ def scrape_citation_statistics(driver: webdriver.Chrome)->Dict:
         print(e)
         return {'table':None, 'chart': None}
 
+
 def scrape_co_authors(driver: webdriver.Chrome)->List[Dict]:
     try:
         co_authors_element = driver.find_elements(By.ID, 'gsc_rsb_co')
@@ -145,47 +143,103 @@ def scrape_co_authors(driver: webdriver.Chrome)->List[Dict]:
             return []
         else:
             co_authors_element = co_authors_element[0]
-
-        co_authors_element = co_authors_element.get_attribute('outerHTML')
-        co_authors_div = BeautifulSoup(co_authors_element, 'html.parser')
-        co_authors_li = co_authors_div.find_all(name='li')
+        
 
         co_authors = []
-        for author in co_authors_li:
-            desc = author.find(name='span', attrs={'class':'gsc_rsb_a_desc'})
-            a = desc.find(name='a')
 
-            name = a.text
-            link = a.get('href')
+        co_authors_view_all_btn = driver.find_elements(By.ID, 'gsc_coauth_opn')
+        if len(co_authors_view_all_btn)>0:
+            co_authors_view_all_btn[0].click()
+            time.sleep(random.uniform(3,5))
+            co_author_element = driver.find_element(By.ID, 'gsc_codb_content')
+            co_author_element = co_author_element.get_attribute('outerHTML')
+            co_authors_div = BeautifulSoup(co_author_element, 'html.parser')
+            co_authors_li = co_authors_div.find_all(name='div', attrs={'class':'gsc_ucoar gs_scl'})
 
-            ext = desc.find(name='span', attrs={'class':'gsc_rsb_a_ext'}).text
+            for author in co_authors_li:
+                desc = author.find(name='div', attrs={'class':'gs_ai_t gs_ai_pss'})
+                name_div = desc.find(name='h3', attrs={'class': 'gs_ai_name'})
+                name = name_div.text.strip()
+                link = name_div.find(name='a').get('href')
+                ext = desc.find(name='div', attrs={'class':'gs_ai_aff'}).text.strip()
 
-            co_authors.append(
-                {
-                    'link': BASE_URL + link,
-                    'name': name,
-                    'ext': ext
-                }
-            )
+                co_authors.append(
+                    {
+                        'link': BASE_URL + link,
+                        'name': name,
+                        'ext': ext
+                    }
+                )
+            
+            co_authors_close_btn = driver.find_element(By.ID, 'gsc_md_cod-x')
+            co_authors_close_btn.click()
+            time.sleep(random.uniform(1.5,3))
+        else:
+            co_authors_element = co_authors_element.get_attribute('outerHTML')
+            co_authors_div = BeautifulSoup(co_authors_element, 'html.parser')
+            co_authors_li = co_authors_div.find_all(name='li')
+
+            
+            for author in co_authors_li:
+                desc = author.find(name='span', attrs={'class':'gsc_rsb_a_desc'})
+                a = desc.find(name='a')
+
+                name = a.text.strip()
+                link = a.get('href')
+
+                ext = desc.find(name='span', attrs={'class':'gsc_rsb_a_ext'}).text.strip()
+
+                co_authors.append(
+                    {
+                        'link': BASE_URL + link,
+                        'name': name,
+                        'ext': ext
+                    }
+                )
+
         return co_authors
-    except:
+    except Exception as e:
         print(f'Error getting co authors at {driver.current_url}')
+        print(e)
+        return None
+
+
+def scrape_profile_interest(driver: webdriver.Chrome)->List:
+    try:
+        interest_div = driver.find_elements(By.ID, 'gsc_prf_int')
+        interests = []
+        if len(interest_div)>0:
+
+            interest_div = interest_div[0].get_attribute('outerHTML')
+            interest_div = BeautifulSoup(interest_div, 'html.parser')
+            interest_li = interest_div.find_all(name='a')
+            for row in interest_li:
+                interests.append(row.text.strip())
+        
+        return interests
+    except Exception as e:
+        print(f'Error scraping interest at {driver.current_url}')
+        print(e)
+
         return None
 
 
 def scrape_google_scholar_profile(url: str, driver:webdriver.Chrome):
     try:
         driver.get(url)
-        time.sleep(random.uniform(5, 7))
+        time.sleep(random.uniform(3, 5))
         citation_statistics = scrape_citation_statistics(driver)
 
-        time.sleep(random.uniform(1,2))
+        time.sleep(random.uniform(3,4))
         co_authors = scrape_co_authors(driver)
 
-        # time.sleep(random.uniform(1,2))
+        time.sleep(random.uniform(2,3))
+        interests = scrape_profile_interest(driver)
+
+        time.sleep(random.uniform(1,2))
         publications = scrape_publications(driver)
 
-        return {'publications': publications, 'citation_statistics': citation_statistics, 'co_authors': co_authors}
+        return {'publications': publications, 'citation_statistics': citation_statistics, 'co_authors': co_authors, 'interests': interests}
     except:
         print(f'Error Scraping Google Scholar for {url}')
         return None
