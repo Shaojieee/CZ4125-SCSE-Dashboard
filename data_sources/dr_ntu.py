@@ -7,7 +7,6 @@ import pandas as pd
 import os
 import json
 from typing import Dict, List, Tuple
-from objects.profile import Profile
 
 
 BASE_URL = 'https://dr.ntu.edu.sg'
@@ -70,8 +69,6 @@ def save_scse_profiles(df:pd.DataFrame, output_dir='./data', output_filename='sc
     print(f'SCSE Profiles saved at {output_file}')
     return
 
-
- # Personal Information
 
 # Personal Information
 def scrape_position(html: BeautifulSoup)->str:
@@ -279,7 +276,7 @@ def scrape_bibliometrics(html: BeautifulSoup)->Dict[str, str]:
 
     return links
 
-def scrape_individual_profile(url:str, full_name:str)->Profile:
+def scrape_individual_profile(url:str, full_name:str)->Dict:
 
     # Getting profile page
     resp = requests.get(
@@ -331,6 +328,12 @@ def scrape_individual_profile(url:str, full_name:str)->Profile:
     profile['other_websites'] = profile['websites'].get('others', [])
     del profile['websites']
 
-    profile = Profile(**profile)
-
     return profile
+
+
+def save_individual_profile(profile, output_filename, output_dir='./data'):
+    os.makedirs(output_dir, exist_ok=True)
+    output_file = os.path.join(output_dir, 'dr_ntu_'+output_filename+'.json')
+    with open(output_file, 'w') as f:
+        json.dump(profile, f)
+    return
