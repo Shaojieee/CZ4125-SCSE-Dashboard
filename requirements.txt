@@ -3,3 +3,8 @@ numpy==1.26.1
 beautifulsoup4==4.12.2
 streamlit==1.27.2
 selenium-stealth==1.0.6
+streamlit-echarts==0.4.0
+openai==0.28.1
+langchain==0.0.320
+python-dotenv==1.0.0
+gpt4all==2.0.1
