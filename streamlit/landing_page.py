@@ -25,10 +25,10 @@ st.set_page_config(
 
 st.write("# Welcome to Streamlit! 👋")
 
-st.sidebar.success("Profile View")
+st.sidebar.success("Profile")
 
 name_selected = st.selectbox(
-    label='Professors', 
+    label='Professor', 
     options=get_names(), 
     index=None
 )
@@ -46,10 +46,28 @@ row0_photo, row0_info = st.columns(
 row0_photo.image(f"./data_sources/{profile['image_path'][2:]}")
 
 row0_info.write(f"""{profile['full_name']}  \n  {profile['designation']}  \n {profile['email']}""")
-row0_info.link_button('Google Scholar', url=profile['google_scholar'])
-if profile['orcid']!=None:
-    row0_info.link_button('ORCID', url=profile['orcid'])
-row0_info.write(f"Interests: {profile['interests']}")
+
+row0_url_0, row0_url_1, row0_url_2 = row0_info.columns([1,1,1])
+
+row0_url_0.link_button(
+    label='DR NTU', 
+    url=profile['dr_ntu']if profile['dr_ntu'] is not None else '', 
+    disabled=True if profile['dr_ntu'] is None else False
+)
+
+row0_url_1.link_button(
+    label='Google Scholar', 
+    url=profile['google_scholar']if profile['google_scholar'] is not None else '', 
+    disabled=True if profile['google_scholar'] is None else False
+)
+
+row0_url_2.link_button(
+    label='ORCID', 
+    url=profile['orcid']if profile['orcid'] is not None else '', 
+    disabled=True if profile['orcid'] is None else False
+)
+
+row0_info.write(f"Interests: {', '.join(profile['interests'])}")
 
 # row0_info.write(f"Grants: {profile['grants']}")
 
