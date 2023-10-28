@@ -19,7 +19,7 @@ def scrape_publications(driver:webdriver.Chrome)->Dict:
         button = driver.find_element(By.ID, "gsc_bpf_more")
         while button.get_attribute('disabled') is None:
             button.click()
-            time.sleep(random.uniform(3,6))
+            time.sleep(random.uniform(3,5))
 
         table = driver.find_element(By.ID, "gsc_a_b")
         table = table.get_attribute('outerHTML')
@@ -202,6 +202,27 @@ def scrape_co_authors(driver: webdriver.Chrome)->List[Dict]:
         print(f'Error getting co authors at {driver.current_url}')
         print(e)
         return None
+
+def scrape_affiliates(driver: webdriver.Chrome)->List[Dict]:
+    try:
+        profile_div = driver.find_element(By.ID, 'gsc_prf_i')
+        profile_div = profile_div.get_attribute('outerHTML')
+        profile_div = BeautifulSoup(profile_div, 'html.parser')
+
+        name_div = profile_div.find(name='div', attrs={'id':'gsc_prf_inw'})
+        next_div = name_div.next_sibling
+        aff = []
+        if next_div.get('id') is None and next_div.get('class')==['gsc_prf_il']:
+            all_a = next_div.find_all(name='a', attrs={'class':'gsc_prf_ila'})
+
+            for a in all_a:
+                aff.append({'name': a.text.strip(), 'link': BASE_URL+a.get('href') if a.get('href').startswith('/citations') else None})
+        return aff
+    except Exception as e:
+        print(f'Error getting affiliates at {driver.current_url}')
+        print(e)
+        return None
+
 
 
 def scrape_profile_interest(driver: webdriver.Chrome)->List:
