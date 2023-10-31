@@ -129,6 +129,17 @@ def scrape_websites(html: BeautifulSoup)->Dict[str, str]:
 
     return links
 
+def scrape_profile_picture(html:BeautifulSoup, full_name:str, output_dir='./profile_img')->str:
+    img = html.find(name='img', attrs={'id':'picture'})
+    img_link = 'https://dr.ntu.edu.sg' + img.get('src')
+    resp = requests.get(img_link)
+
+    os.makedirs(output_dir, exist_ok=True)
+
+    with open(f"./profile_img/{full_name.lower().replace(' ', '_')}.jpg", "wb") as f:
+        f.write(resp.content)
+    return f"./profile_img/{full_name.lower().replace(' ', '_')}.jpg"
+
 # Information from `Profile` Section
 #TODO: Check if there are any more sections in `div` with `id=accordian`
 def scrape_keywords(html: BeautifulSoup)->List[str]:
@@ -290,6 +301,7 @@ def scrape_individual_profile(url:str, full_name:str)->Dict:
     profile['name_card'] = scrape_name_card(html)
     profile['email'] = scrape_email(html)
     profile['websites'] = scrape_websites(html)
+    profile['image_path'] = scrape_profile_picture(html, full_name)
 
     # Information from `Profile` Section
     profile['keywords'] = scrape_keywords(html)
