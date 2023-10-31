@@ -17,7 +17,7 @@ from components.scse_statistics import generate_statistic
 
 
 def get_profile():
-    with open(f'./data_sources/scse/profile.json', 'r') as f:
+    with open(f'./data_sources/profile/scse.json', 'r') as f:
         profile = json.load(f)
     return profile
 
@@ -47,13 +47,13 @@ row1[0].metric(
 row1[1].metric(
     label='\# of Publications', 
     value=sum(df['# of Publications']),
-    delta=str(df.loc[df['Year']==datetime.datetime.now().year, '# of Publications'].values[0]) +' YTD'
+    delta=str(df.loc[df['Year']==str(datetime.datetime.now().year), '# of Publications'].values[0]) +' YTD'
 )
 
 row1[2].metric(
     label='\# of Citations', 
     value=sum(df['# of Citations']),
-    delta=str(df.loc[df['Year']==datetime.datetime.now().year, '# of Citations'].values[0]) + ' YTD'
+    delta=str(df.loc[df['Year']==str(datetime.datetime.now().year), '# of Citations'].values[0]) + ' YTD'
 )
 
 row2 = st.columns(3)
@@ -64,7 +64,7 @@ row2[0].metric(
     help='\# of Organisations that has published with NTU'
 )
 
-avg_external_collaborators = network_df[network_df['location']!='Nanyang Technological University'].groupby(by=['source'])['location'].nunique().mean()
+avg_external_collaborators = network_df[network_df['location']!='Nanyang Technological University'].groupby(by=['source'])['location'].nunique().mean().round(2)
 
 row2[1].metric(
     label='Avg External Collaborator per Faculty',

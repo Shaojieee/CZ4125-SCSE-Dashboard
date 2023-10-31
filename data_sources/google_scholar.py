@@ -19,7 +19,7 @@ def scrape_publications(driver:webdriver.Chrome)->Dict:
         button = driver.find_element(By.ID, "gsc_bpf_more")
         while button.get_attribute('disabled') is None:
             button.click()
-            time.sleep(random.uniform(3,5))
+            time.sleep(random.uniform(2,3))
 
         table = driver.find_element(By.ID, "gsc_a_b")
         table = table.get_attribute('outerHTML')
@@ -117,7 +117,7 @@ def scrape_citation_statistics(driver: webdriver.Chrome)->Dict:
         open_chart_btn = driver.find_elements(By.ID, 'gsc_hist_opn')
         if len(open_chart_btn)>0:
             open_chart_btn[0].click()
-            time.sleep(random.uniform(3,5))
+            time.sleep(random.uniform(3,4))
             chart = driver.find_element(By.ID, 'gsc_md_hist_c')
             chart = chart.get_attribute('outerHTML')
             chart = BeautifulSoup(chart, 'html.parser')
@@ -125,7 +125,7 @@ def scrape_citation_statistics(driver: webdriver.Chrome)->Dict:
 
             close_chart_btn = driver.find_element(By.ID, 'gsc_md_hist-x')
             close_chart_btn.click()
-            time.sleep(random.uniform(3,5))
+            time.sleep(random.uniform(3,4))
         else:
             chart = {}
 
@@ -248,7 +248,10 @@ def scrape_profile_interest(driver: webdriver.Chrome)->List:
 def scrape_google_scholar_profile(url: str, driver:webdriver.Chrome):
     try:
         driver.get(url)
-        time.sleep(random.uniform(3, 5))
+        time.sleep(random.uniform(2,3))
+        
+        aff = scrape_affiliates(driver)
+
         citation_statistics = scrape_citation_statistics(driver)
 
         time.sleep(random.uniform(3,4))
@@ -257,15 +260,14 @@ def scrape_google_scholar_profile(url: str, driver:webdriver.Chrome):
         time.sleep(random.uniform(2,3))
         interests = scrape_profile_interest(driver)
 
-        time.sleep(random.uniform(1,2))
         publications = scrape_publications(driver)
 
-        return {'publications': publications, 'citation_statistics': citation_statistics, 'co_authors': co_authors, 'interests': interests}
+        return {'publications': publications, 'citation_statistics': citation_statistics, 'co_authors': co_authors, 'interests': interests, 'affiliates': aff}
     except:
         print(f'Error Scraping Google Scholar for {url}')
         return None
 
-def save_google_scholar_profile(profile: Dict, output_filename, output_dir='./raw_data'):
+def save_google_scholar_profile(profile: Dict, output_filename, output_dir='./raw_google_scholar'):
     os.makedirs(output_dir, exist_ok=True)
     output_filename = output_dir + '/' + output_filename
 
@@ -325,7 +327,7 @@ def scrape_publication_details(url: str, driver: webdriver.Chrome):
 
         return {}
 
-def save_publications_details(details, output_filename, output_dir='./raw_data'):
+def save_publications_details(details, output_filename, output_dir='./raw_google_scholar'):
     os.makedirs(output_dir, exist_ok=True)
     output_filename = output_dir + '/' + output_filename
     
@@ -341,29 +343,35 @@ def save_publications_details(details, output_filename, output_dir='./raw_data')
 
 
 def search_from_google_scholar_profile(full_name: str, driver: webdriver.Chrome):
-    search_bar = driver.find_element(By.ID, 'gs_hdr_tsi')
-    search_bar.click()
-    search_bar.clear()
     # Search with ntu to help filter out results
-    search_bar.send_keys(f'{full_name} ntu')
-
-    time.sleep(random.uniform(5,7))
-
-    search_bar.send_keys(Keys.RETURN)
-
-    table = driver.find_element(By.ID, 'gsc_sa_ccl')
-    table = table.get_attribute('outerHTML')
-    table = BeautifulSoup(table, 'html.parser')
-
-    rows = table.find_all(name='div', attrs={'class': 'gsc_1usr'})
+    search_keys = [f'{full_name}', f'{full_name} ntu']
     results = []
-    for row in rows:
-        name = row.find(name='h3', attrs={'class':'gs_ai_name'})
+    for key in search_keys:
+        search_bar = driver.find_element(By.ID, 'gs_hdr_tsi')
+        search_bar.click()
+        search_bar.clear()
+        search_bar.send_keys(key)
 
-        aff = row.find(name='div', attrs={'class': 'gs_ai_aff'})
-        eml = row.find(name='div', attrs={'class': 'gs_ai_eml'})
+        time.sleep(random.uniform(2,3))
 
-        if (eml is not None and 'ntu.edu.sg' in eml.text) or (aff is not None and 'Nanyang Technological University' in aff.text):
-            results.append('https://scholar.google.com' + name.find(name='a').get('href'))
-    
+        search_bar.send_keys(Keys.RETURN)
+
+        table = driver.find_element(By.ID, 'gsc_sa_ccl')
+        table = table.get_attribute('outerHTML')
+        table = BeautifulSoup(table, 'html.parser')
+
+        rows = table.find_all(name='div', attrs={'class': 'gsc_1usr'})
+        
+        for row in rows:
+            name = row.find(name='h3', attrs={'class':'gs_ai_name'})
+
+            aff = row.find(name='div', attrs={'class': 'gs_ai_aff'})
+            eml = row.find(name='div', attrs={'class': 'gs_ai_eml'})
+            if len(rows)==1:
+                results.append('https://scholar.google.com' + name.find(name='a').get('href'))
+            elif (eml is not None and 'ntu.edu.sg' in eml.text) or (aff is not None and 'Nanyang Technological University' in aff.text):
+                results.append('https://scholar.google.com' + name.find(name='a').get('href'))
+        
+        
+        
     return results

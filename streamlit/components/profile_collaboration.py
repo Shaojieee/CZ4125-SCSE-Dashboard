@@ -90,9 +90,9 @@ def generate_collaboration(tab, profile):
     collaboration_by_year = co_authors_df.groupby(by=['year',groupby_col])['target'].count().reset_index()
     years = set(collaboration_by_year['year'].to_list())
     has_unknown = []
-    if 'unknown' in years:
-        years.remove('unknown')
-        has_unknown = ['unknown']
+    if 'Unknown' in years:
+        years.remove('Unknown')
+        has_unknown = ['Unknown']
 
     year_df = pd.DataFrame({'year':[x for x in range(min(years), datetime.datetime.now().year+1)]+has_unknown})
     collaboration_by_year = year_df.merge(collaboration_by_year, how='left', on='year')
