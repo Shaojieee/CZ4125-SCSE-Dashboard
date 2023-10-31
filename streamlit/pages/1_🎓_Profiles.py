@@ -2,6 +2,8 @@ import streamlit as st
 import json
 import pandas as pd
 import datetime
+import numpy as np
+import math
 
 from components.profile_background import generate_background
 from components.profile_research import generate_research
@@ -62,28 +64,26 @@ if name_selected is not None:
     row0_info.link_button(
         label='Email', 
         url='mailto:'+profile['email'], 
-        disabled=True if profile['dr_ntu'] is None else False,
         use_container_width=True
     )
 
     row0_info.link_button(
         label='DR NTU', 
-        url=profile['dr_ntu']if profile['dr_ntu'] is not None else '', 
-        disabled=True if profile['dr_ntu'] is None else False,
+        url=profile['dr_ntu']if not(isinstance(profile['dr_ntu'], float) and math.isnan(profile['dr_ntu'])) else '', 
+        disabled=False if not(isinstance(profile['dr_ntu'], float) and math.isnan(profile['dr_ntu'])) else True,
         use_container_width=True
     )
-
     row0_info.link_button(
         label='Google Scholar', 
-        url=profile['google_scholar']if profile['google_scholar'] is not None else '', 
-        disabled=True if profile['google_scholar'] is None else False,
+        url=profile['google_scholar']if not(isinstance(profile['google_scholar'], float) and math.isnan(profile['google_scholar'])) else '', 
+        disabled=False if not(isinstance(profile['google_scholar'], float) and math.isnan(profile['google_scholar'])) else True,
         use_container_width=True
     )
 
     row0_info.link_button(
         label='Personal Site', 
-        url=profile['other_websites'][0] if profile['other_websites'] is not None and len(profile['other_websites'])>0 else '', 
-        disabled=False if profile['other_websites'] is not None and len(profile['other_websites'])>0 else True,
+        url=profile['other_websites'][0] if not(isinstance(profile['other_websites'], float) and math.isnan(profile['other_websites'])) and len(profile['other_websites'])>0 else '', 
+        disabled=False if not(isinstance(profile['other_websites'], float) and math.isnan(profile['other_websites'])) and len(profile['other_websites'])>0 else True,
         use_container_width=True
     )
 
@@ -91,10 +91,11 @@ if name_selected is not None:
 
     # row0_info.write(f"Grants: {profile['grants']}")
 
-    if profile['google_scholar'] is None:
+    if isinstance(profile['google_scholar'], float) and math.isnan(profile['google_scholar']):
         st.warning('Google Scholar not available', icon="⚠️")
 
     else:
+        st.write('heare')
         row1= st.columns(3)
 
         total_publications = sum(profile['published_by_year']['# of Publications'])
@@ -154,13 +155,12 @@ if name_selected is not None:
     
     generate_background(tab1, profile)
 
-    
-
+        
     tab2.info(
         body='Information is sourced from Google Scholar',
         icon='ℹ️'
     )
-    if profile['google_scholar'] is None:
+    if isinstance(profile['google_scholar'], float) and math.isnan(profile['google_scholar']):
         tab2.warning('Google Scholar not available', icon="⚠️")
     else:
         generate_research(tab2, profile)
@@ -169,7 +169,7 @@ if name_selected is not None:
         body='Information is sourced from Google Scholar',
         icon='ℹ️'
     )
-    if profile['google_scholar'] is None:
+    if isinstance(profile['google_scholar'], float) and math.isnan(profile['google_scholar']):
         tab3.warning('Google Scholar not available', icon="⚠️")
     else:
         generate_collaboration(tab3, profile)
@@ -178,7 +178,7 @@ if name_selected is not None:
         body='Information is sourced from Google Scholar',
         icon='ℹ️'
     )
-    if profile['google_scholar'] is None:
+    if isinstance(profile['google_scholar'], float) and math.isnan(profile['google_scholar']):
         tab4.warning('Google Scholar not available', icon="⚠️")
     else:
         generate_statistic(tab4, profile)
