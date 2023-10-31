@@ -2,10 +2,11 @@ import streamlit as st
 import pandas as pd
 from streamlit_echarts import st_echarts
 import altair as alt
+import datetime
 
 
 def generate_statistic(tab, profile):
-    num_published = pd.DataFrame({'Year': profile['published_by_year'].keys(), '# of Publications':profile['published_by_year'].values()})
+    num_published = pd.DataFrame(profile['published_by_year'])
     num_published['Year'] = num_published['Year'].astype('str')
     num_published = num_published.sort_values(by='Year')
     tab.subheader('# of Publications')
@@ -19,46 +20,49 @@ def generate_statistic(tab, profile):
     tab.bar_chart(data=num_citations, x='Year', y='# of Citations')
 
 
-    years_citations = list(profile['avg_citations_by_publication_year'].keys())
-    avg_citations_by_publication_year = [profile['avg_citations_by_publication_year'][x] for x in years_citations]
-    avg_citations_by_publication_year = pd.DataFrame({'Publication Year': years_citations, 'Avg Citations':avg_citations_by_publication_year})
-    avg_citations_by_publication_year = avg_citations_by_publication_year.sort_values(by='Publication Year')
-    avg_citations_by_publication_year['Avg Citations'] = avg_citations_by_publication_year['Avg Citations'].round(2)
+    avg_citations_by_publication_year = pd.DataFrame(profile['avg_citations_by_publication_year'])
     
-    tab.subheader('Avg Citations by Publication Year')
+    tab.subheader('Avg Citations per Publication by Publication Year')
     avg_citations_by_publication_year_chart = alt.Chart(avg_citations_by_publication_year).mark_line(
         point=alt.OverlayMarkDef(filled=False, fill='white', size=50)
     ).encode(
-        x='Publication Year',
-        y='Avg Citations'
+        alt.X('Publication Year:N', sort='ascending').title('Publication Year'),
+        alt.Y('Avg Citations per Publication').title('Avg Citations per Publication'),
+        
+        
     )
     tab.altair_chart(avg_citations_by_publication_year_chart, use_container_width=True)
+    
+    # tab.subheader('KIV')
+    # avg_citations_by_publication_year_chart = alt.Chart(avg_citations_by_publication_year).mark_line(
+    #     point=alt.OverlayMarkDef(filled=False, fill='white', size=50)
+    # ).encode(
+    #     x='Publication Year',
+    #     y='Avg Citations'
+    # )
+    # tab.altair_chart(avg_citations_by_publication_year_chart, use_container_width=True)
 
 
-    #TODO: change processing format
     tab.subheader('h-index by Year')
-    years_citations = list(profile['h_index_by_year'].keys())
-    h_index_by_year = [profile['h_index_by_year'][x] for x in years_citations]
-    h_index_by_year = pd.DataFrame({'Year': years_citations, 'h-index':h_index_by_year})
+    h_index_by_year = pd.DataFrame(profile['h_index_by_year'])
     tab.bar_chart(data=h_index_by_year, x='Year', y='h-index')
 
-    #TODO: Change processing format
     tab.subheader('h-index by Publication Year')
-    years_citations = list(profile['h_index_by_publication_year'].keys())
-    h_index_by_publication_year = [profile['h_index_by_publication_year'][x] for x in years_citations]
-    h_index_by_publication_year = pd.DataFrame({'Publication Year': years_citations, 'h-index':h_index_by_publication_year})
+    h_index_by_publication_year = pd.DataFrame(profile['h_index_by_publication_year'])
     tab.bar_chart(data=h_index_by_publication_year, x='Publication Year', y='h-index')
 
 
-    h_index = profile['h_index_by_years_from_publication_year']
-    sorted_index = sorted(range(len(h_index['Publication Year'])), key=lambda index: h_index['Publication Year'][index])
-    publication_year = [h_index['Publication Year'][i] for i in sorted_index]
-    data__ = [h_index['h-index'][i] for i in sorted_index]
-
+    h_index_by_years_from_publication_year = pd.DataFrame(profile['h_index_by_years_from_publication_year'])
+    publication_year = sorted(h_index_by_years_from_publication_year['Publication Year'].unique())
+    h_index_by_years_from_publication_year = h_index_by_years_from_publication_year.sort_values(by=['Publication Year', 'Year'])
+    h_index_by_years_from_publication_year['h-index'] = h_index_by_years_from_publication_year['h-index'].astype('int') 
+    publication_year = [int(x) for x in publication_year]
+    h_index = list(h_index_by_years_from_publication_year.groupby(by=['Publication Year'])['h-index'].apply(list).reset_index()['h-index'])
+    
     tab.subheader('h-index by Year grouped by Publication Year')
 
     @st.cache_data
-    def generate_graph_options(start, end):
+    def generate_graph_options(start, end, name):
         start_index, end_index = publication_year.index(start), publication_year.index(end)
         options = {
             "tooltip": {"trigger": "axis"},
@@ -71,7 +75,7 @@ def generate_statistic(tab, profile):
             "xAxis": {
                 "type": "category",
                 "boundaryGap": False,
-                "data": h_index['Year'],
+                "data": publication_year,
                 "name": "Year",
                 "nameLocation": "middle",
                 "nameTextStyle":{
@@ -80,7 +84,6 @@ def generate_statistic(tab, profile):
                     "color": "rgb(250, 250, 250)"
                 }
             },
-            # TODO: Change style
             "yAxis": {
                 "type": "value", 
                 "name": 'h-index',
@@ -98,15 +101,16 @@ def generate_statistic(tab, profile):
             },
             "series": [
                 {
-                    "name": publication_year,
+                    "name": year,
                     "type": "line",
                     # "stack": "总量",
-                    "data": data
+                    "data": [None]*(len(publication_year)-len(data)) + data
                 }
-                for publication_year, data in zip(publication_year[start_index: end_index+1], data__[start_index: end_index+1])
+                for year, data in zip(publication_year[start_index: end_index+1], h_index[start_index:end_index+1])
             ]
         }
         return options
+
 
 
     with tab:
@@ -117,13 +121,6 @@ def generate_statistic(tab, profile):
             value=(publication_year[-5], publication_year[-1]),
             step=1
         )
-        options = generate_graph_options(values[0], values[1])
+        options = generate_graph_options(values[0], values[1], name=profile['full_name'])
+        
         st_echarts(options=options, height="400px")
-
-    
-
-
-
-
-    tab.subheader('Publication Position')
-    tab.write('First Author, Last Author, Co-Author, Single Author')

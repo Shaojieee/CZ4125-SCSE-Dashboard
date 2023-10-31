@@ -25,3 +25,6 @@ def create_driver(debug=False):
             )
     return driver
 
+
+def get_h_index(citations):
+    return sum(x >= i + 1 for i, x in enumerate(sorted(list(citations), reverse=True)))

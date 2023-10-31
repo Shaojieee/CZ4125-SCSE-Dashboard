@@ -5,6 +5,15 @@ import datetime
 from streamlit_d3graph import d3graph
 from d3graph import vec2adjmat
 import numpy as np
+import altair as alt
+import streamlit.components.v1 as components
+
+from components.scse_research import generate_research
+from components.scse_collaboration import generate_collaboration
+from components.scse_statistics import generate_statistic
+
+
+
 
 
 def get_profile():
@@ -15,13 +24,18 @@ def get_profile():
 st.set_page_config(
     page_title="SCSE",
     page_icon="👋",
+    # layout='wide'
 )
+
+
+
 
 st.title('Nanyang Technological University') 
 st.subheader('School of Computer Science and Engineering')
 
 profile = get_profile()
 df = pd.DataFrame(profile['by_year'])
+network_df = pd.DataFrame(profile['Collaboration Network'])
 
 row1 = st.columns(3)
 
@@ -42,66 +56,44 @@ row1[2].metric(
     delta=str(df.loc[df['Year']==datetime.datetime.now().year, '# of Citations'].values[0]) + ' YTD'
 )
 
-st.subheader('\# of Publications')
-st.bar_chart(data=df, x='Year', y='# of Publications')
+row2 = st.columns(3)
 
-st.subheader('\# of Citations')
-st.bar_chart(data=df, x='Year', y='# of Citations')
-
-
-st.subheader('Faculty Statistics')
-top_faculty_df = pd.DataFrame(profile['Top Faculty'])
-top_faculty_df['Avg Citations per Publication'] = top_faculty_df['Avg Citations per Publication'].round(2)
-top_faculty_df = top_faculty_df.sort_values(by=['# of Publications', '# of Citations', 'Avg Citations per Publication', 'h-index'], ascending=False)
-
-
-st.dataframe(
-    data=top_faculty_df,
-    use_container_width=True,
-    hide_index=True
+row2[0].metric(
+    label='\# of External Collaborators',
+    value=network_df['location'].nunique(),
+    help='\# of Organisations that has published with NTU'
 )
 
-st.subheader('Collaboration Network within NTU')
+avg_external_collaborators = network_df[network_df['location']!='Nanyang Technological University'].groupby(by=['source'])['location'].nunique().mean()
 
-network_df = pd.DataFrame(profile['Collaboration Network'])
-
-def build_graph(type, filter_by_location):
-    temp_df = pd.DataFrame(network_df)
-    temp_df = temp_df[temp_df['type']=='NTU']
-    
-    if len(filter_by_location)>0:
-        temp_df = temp_df[temp_df['location'].isin(filter_by_location)]
-
-    if type=='Organisation':
-        grouped = temp_df.groupby(by=['type']).agg(
-            num_authors=('target', lambda x: len(np.unique(x))),
-            num_collaborations=('# of Collaboration', np.sum)
-        ).reset_index()
-        temp_df = grouped
-        source = ['NTU']*len(temp_df)
-        target = temp_df['type'].to_list()
-        weight = temp_df['num_collaborations'].to_list()
-        adjmat = vec2adjmat(source, target, weight=weight)
-    if type=='Individual':
-        source = temp_df['source'].to_list()
-        target = temp_df['target'].to_list()
-        weight = temp_df['# of Collaboration'].to_list()
-        adjmat = vec2adjmat(source, target, weight=weight)
-    
-    return adjmat
-granularity = st.radio(
-    label='Granularity',
-    options=['Organisation', 'Individual'],
-    index=0,
-    horizontal=True
+row2[1].metric(
+    label='Avg External Collaborator per Faculty',
+    value=avg_external_collaborators,
 )
-graph = build_graph(type=granularity, filter_by_location=[])
 
-d3 = d3graph(charge=500)
-d3.graph(graph)
-# d3.set_node_properties(label=label, tooltip=tooltip, color=label, size='degree')
-# Initialize
-d3.show(
-    # show_slider=False,
-    figsize=(700,500)
+row2[2].metric(
+    label='\# of External Collaborations',
+    value=network_df[network_df['location']!='Nanyang Technological University']['target'].count(),
+    help='\# of Publications with External Organisations'
 )
+
+list_tabs = ['Collaboration', 'Research Impact', 'Research Focus']
+whitespace = 1
+tab1, tab2, tab3 = st.tabs(list_tabs)
+css = '''
+<style>
+    .stTabs [data-baseweb="tab-list"] button [data-testid="stMarkdownContainer"] p {
+    font-size:1.5rem;
+    }
+</style>
+'''
+
+st.markdown(css, unsafe_allow_html=True)
+
+generate_collaboration(tab1, profile)
+
+generate_statistic(tab2, profile)
+
+generate_research(tab3, profile)
+
+
