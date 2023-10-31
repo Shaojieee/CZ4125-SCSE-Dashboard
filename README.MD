@@ -3,6 +3,10 @@
 
 The information used in this project is sourced from Google Scholar.
 
+Run the dashboard using the following command
+```
+streamlit run ./streamlit/🏫_SCSE.py
+```
 
 
 This project consists of 2 main folders.
