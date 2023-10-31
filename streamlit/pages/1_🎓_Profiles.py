@@ -15,13 +15,13 @@ import streamlit.components.v1 as components
 
 
 @st.cache_data
-def get_names():
-    return pd.read_csv('./data_sources/raw_data/scse_profiles.csv')['full_name']
+def get_faculties():
+    return pd.read_csv('./data_sources/processed/scse_profile.csv')
 
 
-def get_profile(name):
-    if name is not None:
-        with open(f'./data_sources/processed_data/{name.lower().replace(" ", "_")}.json', 'r') as f:
+def get_profile(id):
+    if id is not None:
+        with open(f'./data_sources/profile/{id}.json', 'r') as f:
             profile = json.load(f)
         return profile
     return None
@@ -34,9 +34,11 @@ st.set_page_config(
 
 
 
+faculties = get_faculties()
+
 name_selected = st.selectbox(
     label='Professor', 
-    options=get_names(), 
+    options=sorted(faculties['full_name']), 
     index=None
 )
 
@@ -44,8 +46,8 @@ if name_selected is None:
     st.subheader('Choose a Faculty from the dropdown above to begin!')
 
 if name_selected is not None:
-    
-    profile = get_profile(name_selected)
+    id = faculties[faculties['full_name']==name_selected]['dr_ntu_id'].values[0]
+    profile = get_profile(id)
 
 
     row0_photo, row0_info = st.columns(

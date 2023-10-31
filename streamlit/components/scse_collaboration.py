@@ -61,9 +61,9 @@ def generate_collaboration(tab, profile):
             collaboration_by_year = filtered_df.groupby(by=['year','location'])['target'].count().reset_index()
             years = set(collaboration_by_year['year'].to_list())
             has_unknown = []
-            if 'unknown' in years:
-                years.remove('unknown')
-                has_unknown = ['unknown']
+            if 'Unknown' in years:
+                years.remove('Unknown')
+                has_unknown = ['Unknown']
             year_df = pd.DataFrame({'year':[x for x in range(min(years), datetime.datetime.now().year+1)]+has_unknown})
             collaboration_by_year = year_df.merge(collaboration_by_year, how='left', on='year')
             collaboration_by_year['target'] = collaboration_by_year['target'].fillna(0)
@@ -72,10 +72,10 @@ def generate_collaboration(tab, profile):
             collaboration_by_year = filtered_df.groupby(by=['year','type'])['target'].count().reset_index()
             years = set(collaboration_by_year['year'].to_list())
             has_unknown = []
-            if 'unknown' in years:
-                years.remove('unknown')
-                has_unknown = ['unknown']
-            year_df = pd.DataFrame({'year':[x for x in range(min(years), datetime.datetime.now().year+1)]+has_unknown})
+            if 'Unknown' in years:
+                years.remove('Unknown')
+                has_unknown = ['Unknown']
+            year_df = pd.DataFrame({'year':[x for x in range(int(min(years)), datetime.datetime.now().year+1)]+has_unknown})
             collaboration_by_year = year_df.merge(collaboration_by_year, how='left', on='year')
             collaboration_by_year['target'] = collaboration_by_year['target'].fillna(0)
             collaboration_by_year['type'] = collaboration_by_year['type'].fillna('NTU')
