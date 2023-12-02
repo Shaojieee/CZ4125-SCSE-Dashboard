@@ -95,7 +95,6 @@ if name_selected is not None:
         st.warning('Google Scholar not available', icon="⚠️")
 
     else:
-        st.write('heare')
         row1= st.columns(3)
 
         total_publications = sum(profile['published_by_year']['# of Publications'])
